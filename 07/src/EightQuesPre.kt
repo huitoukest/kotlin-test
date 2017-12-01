@@ -11,16 +11,23 @@ import kotlin.collections.ArrayList
  * 　其中f(n) 是节点n的估价函数，g(n)是在状态空间中从初始节点到n节点的实际代价，
  *   h(n)是从n到目标节点最佳路径的估计代价。 在此八数码问题中，显然g(n)就是从初始状态变换到当前状态所移动的步数，
  *   估计代价h(n)我们就可采用当前状态各个数字牌不在目标状态未知的个数，即错位数。
+ *
+ *   资料:猜想 N×N的棋盘，N为奇数时，与八数码问题相同。逆序奇偶同性可互达
+ *   N为偶数时，空格每上下移动一次，奇偶性改变。称空格位置所在的行到目标空格所在的行步数为空格的距离（不计左右距离），若两个状态的可相互到达，则有，两个状态的逆序奇偶性相同且空格距离为偶数，或者，逆序奇偶性不同且空格距离为奇数数。否则不能。
+ *   也就是说，当此表达式成立时，两个状态可相互到达：(状态1奇偶性==状态2奇偶性)==(空格距离%2==0)。
  */
 fun main(args: Array<String>) {
-    val stnum4 = intArrayOf(2, 1, 6, 4, 0, 8, 7, 5, 3 ,9 ,10 ,11 ,12 ,13 ,14 ,15 )
-    val tanum4 = intArrayOf(1, 2, 3, 8, 0, 4, 7, 6, 5 ,15, 10 ,11 ,9 ,13  ,14 ,12)
+    val stnum4 = intArrayOf(2, 1, 6, 4, 0, 8, 7, 5, 3 , 13 , 15, 10 ,11 ,14 ,9 ,12 )
+    //val tanum4 = intArrayOf(1, 4, 7, 2, 0, 6, 5, 3, 8 , 9,   10 ,11 ,12 ,13,15 ,14)
+    val tanum4 = intArrayOf(1,6,7,4,2,8,5,10,3,13,9,15,0,11,14,12)
 
     val stnum3 = intArrayOf(2, 1, 6, 4, 0, 8, 7, 5, 3 )
     val tanum3 = intArrayOf(1, 4, 7, 2, 0, 6, 5, 3, 8 )
 
-    EightPuzzlePre(3,stnum3).runByStar(tanum3)
+    //EightPuzzlePre(3,stnum3).runByStar(tanum3)
     //EightPuzzlePre(4,stnum4).runByStar(tanum4)
+    //EightPuzzlePre(3,stnum3).runByStarBinay(tanum3)
+    EightPuzzlePre(4,stnum4).runByStarBinay(tanum4)
 }
 
 //定义移动的四个方向
@@ -80,7 +87,39 @@ class ExtIntArray(num:IntArray){
 
 }
 
-/**
+class InsertSort {
+    /**
+     * 默认升序插入,插入前需要保持有序
+     */
+    fun insertSort(list:ArrayList<EightPuzzlePre> , pre:EightPuzzlePre) {
+        if (list == null ) {
+            return;
+        }
+        if(list.size < 2){
+            list.add(pre)
+        }
+
+        var index = Collections.binarySearch(list,pre)
+        if( index > -1){
+            //list.add()
+            list.add(index,pre)
+        }else if(pre.evaluation < list.get(0).evaluation){
+            list.add(0,pre)
+        }else{
+            list.add(pre)
+        }
+    }
+
+    fun brySearch(list:ArrayList<EightPuzzlePre> , pre:EightPuzzlePre):Int{
+        var index = Collections.binarySearch(list,pre)
+        if (index < 0 ){
+            index = -1
+        }
+        return  index
+    }
+}
+
+    /**
  * A*算法解决八数码问题 Kotlin语言实现
  * @parm dimension 维度信息,即dimension X dimension的矩阵
  */
@@ -115,11 +154,15 @@ class EightPuzzlePre(dimension:Int,num:IntArray) : Comparable<Any> {
                 }
             }
             exNum.initHash()
+            if(num.size != size)
+            {
+                throw RuntimeException("num size error")
+            }
         }
         companion object {
             private var moveDirectionMap:MutableMap<Int,ArrayList<Direction>>? = null //用来记录每一个步骤
             private var evaluteStep:Array<IntArray>? = null;
-
+            val insertUtil = InsertSort()
 
             /**
              * @param zeroPosition 位置从0开始zeroPosition
@@ -160,20 +203,18 @@ class EightPuzzlePre(dimension:Int,num:IntArray) : Comparable<Any> {
                         evaluteStep  = Array<IntArray>(size,{it -> IntArray(size,{it->0})})
                         val rng = 0 .. size - 1
                         var temp = 0
-                        var tmpHv = 0
                         for(i in rng){
                             val ary = evaluteStep!![i]
                             for(j in rng){
                                 temp = 0
-                                tmpHv = Math.abs(i - j);//如果在同一行
-                                if( tmpHv >= dimension) {//如果不在同一行
-                                    var  ii = i + 1
-                                    var  jj = j + 1
-                                    temp += Math.abs(ii / dimension - jj/dimension)  //计算纵向距离
-                                    temp += Math.abs(i % dimension - j % dimension) //计算横向距离
-                                }else{
-                                    temp = tmpHv
-                                }
+                                var  ii = i + 1
+                                var  jj = j + 1
+                                var upDownValue = Math.abs(ii / dimension - jj/dimension) //计算纵向距离
+                                /*if(dimension % 2 == 0){//当dimension是偶数是,上下移动一次将会改变奇偶性质,使结果不可达
+                                    upDownValue = upDownValue + 0
+                                }*/
+                                temp +=  upDownValue
+                                temp += Math.abs(i % dimension - j % dimension) //计算横向距离
                                 ary[j] = temp
                             }
                         }
@@ -201,34 +242,47 @@ class EightPuzzlePre(dimension:Int,num:IntArray) : Comparable<Any> {
             return       this.exNum.equals(target.exNum)
         }
 
+        fun getEvl01(target: EightPuzzlePre):Int{
+            var temp = 0
+                for (i in range) {//将不相等的个数作为估价值
+                if (exNum.num[i] != target.exNum.num[i])
+                    temp++
+            }
+            return temp
+        }
+
+        /**
+         * 将相同值得位置移动的步数差作为估价值
+         */
+        fun getEvl02(target: EightPuzzlePre):Int{
+                var temp = 0
+                for(i in range){
+                    if(exNum.num[i] == target.exNum.num[i]){//相同位置的两个数相等
+                        continue
+                    }/*else{
+                         temp += 1
+                    }*/
+                    for(j in range){
+                        if(exNum.num[j] == target.exNum.num[j]){//相同位置的两个数相等
+                            continue
+                        }
+                        if(exNum.num[i] == target.exNum.num[j]){
+                            temp += getEvaluteStep(dimension,i,j)
+                            break
+
+                        }
+                    }
+                }
+                return temp
+        }
+
         /**
          * 求f(n) = g(n)+h(n);
          * 初始化状态信息
          * @param target
          */
         fun init(target: EightPuzzlePre) {
-            var temp = 0
-           /* for (i in range ) {
-                if (num[i] != target.num[i])
-                    temp++   //预估当前位置到目标位置变幻的成本值(h(n))
-            }*/
-
-            for(i in range){
-                if(exNum.num[i] == target.exNum.num[i]){//相同位置的两个数相等
-                    continue
-                }else{
-                    temp += 1
-                }
-                for(j in range){
-                    if(exNum.num[j] == target.exNum.num[j]){//相同位置的两个数相等
-                        continue
-                    }
-                    if(exNum.num[i] == target.exNum.num[j]){
-                        temp += getEvaluteStep(dimension,i,j)
-                        break
-                    }
-                }
-            }
+            var temp = getEvl02(target)
             this.misposition = temp
             if (this.parent == null) {
                 this.depth = 0
@@ -257,6 +311,12 @@ class EightPuzzlePre(dimension:Int,num:IntArray) : Comparable<Any> {
          * @return 有解：true 无解：false
          */
         fun isSolvable(target: EightPuzzlePre): Boolean {
+            if(this.exNum.num.size != target.exNum.num.size){
+                return false
+            }
+            if(exNum.num.sum() != exNum.num.sum()){
+                return false
+            }
             var reverse = 0
             for (i in range) {//num[i]是后面的数
                 for (j in 0..i - 1) {//num[j]是前面的数
@@ -334,6 +394,16 @@ class EightPuzzlePre(dimension:Int,num:IntArray) : Comparable<Any> {
                 } else {
                     print(String.format("%-4d",this.exNum.num[i]))
                 }
+            }
+        }
+
+        fun printList() {
+            for (i in range) {
+                if(i>0){
+                    print(",")
+                }
+                print(this.exNum.num[i])
+
             }
         }
 
@@ -488,5 +558,87 @@ class EightPuzzlePre(dimension:Int,num:IntArray) : Comparable<Any> {
             }
             println("misscount is $misCount")
         }
+
+
+    fun  runByStarBinay(tanum:IntArray){
+        //定义open表
+        val nextSteps = ArrayList<EightPuzzlePre>(dimension * 10000)  //记录临时的下一步数列状态
+        val history = ArrayList<EightPuzzlePre>(dimension * 10000) //记录走过的数列状态
+        val start = EightPuzzlePre(dimension,exNum.num)
+        val target = EightPuzzlePre(dimension,tanum)
+        start.init(target)
+        var count = 0
+        val startTime = System.currentTimeMillis()   //获取开始时间
+        var misCount = 0
+
+        tailrec  fun runSearch(current:EightPuzzlePre,nextSteps:ArrayList<EightPuzzlePre>,history:ArrayList<EightPuzzlePre>){
+            if(nextSteps.isEmpty() && history.isEmpty()){
+                nextSteps.add(current)
+            }
+            if(!nextSteps.isEmpty()){
+                var next = nextSteps.get(0)
+                if(count % 10000 == 0 && start.isSolvable(next)){
+                    println("中间值：")
+                    next.printList()
+                    println()
+                }
+                if (next.isTarget(target)) {
+                    //输出
+                    next.printRoute()
+                    val end = System.currentTimeMillis() //获取结束时间
+                    println("程序运行时间： " + (end - startTime) + "ms,count=$count")
+                    System.exit(0)
+                }
+                insertUtil.insertSort(history,next) //history.add(next)
+                nextSteps.remove(next)
+            }else{
+                println("misscount")
+                System.exit(0)
+            }
+            var directions = EightPuzzlePre.getCanMoveDirections(dimension,current.zeroPosition)
+            directions.forEach {
+                val next = current.moveUp(it,dimension) //按照给定方向移动一步之后,由best状态进行扩展并加入到open表中
+                next.parent = current
+                val historyPosition = insertUtil.brySearch(history,next)//next.isContains(history)
+                if (historyPosition == -1) {//判重,如果原来没走过
+                    var nextPosition = insertUtil.brySearch(nextSteps,next)//next.isContains(nextSteps)
+                    if(nextPosition == -1){//如果没有预判
+                        next.init(target)
+                        if( next.isSolvable(target) && ( it == Direction.LEFT || it == Direction.RIGHT) ) {//如果不可达,则左右移动不可达
+                            insertUtil.insertSort(history,next)
+                        }else {
+                            insertUtil.insertSort(nextSteps, next)//nextSteps.add(next)
+                        }
+                    }else{//如果已经预判评估过
+                        if(next.depth < nextSteps.get(nextPosition).depth){
+                            next.init(target)
+                            nextSteps.removeAt(nextPosition)
+                            //nextSteps.add(next)
+                            insertUtil.insertSort(nextSteps,next)
+                        }
+                    }
+                }/*else if(next.depth < history.get(historyPosition).depth){//虽然重复,但是找到了更短的实现方式时
+                        nextSteps.add(next)
+                        history.removeAt(historyPosition)
+                        next.init(target)
+                        hasNew = true
+                    }*/
+            }
+            /*if(directions.size > 0){
+                Collections.sort(nextSteps)
+                Collections.sort(history)
+            }*/
+            count ++ ;
+            if(count % 10000 == 0) println("已经运行count=$count 步")
+            runSearch(nextSteps.get(0),nextSteps,history)
+        }
+
+        if (start.isSolvable(target)) {
+            runSearch(start,nextSteps,history)
+        }else{
+            println("没有解，请重新输入。")
+        }
+        println("misscount is $misCount")
+    }
 
  }

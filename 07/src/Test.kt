@@ -1,4 +1,5 @@
 import java.util.*
+import kotlin.collections.ArrayList
 
 /**
  * http://blog.csdn.net/cow__sky/article/details/8276508
@@ -12,4 +13,10 @@ import java.util.*
  */
 fun main(args: Array<String>) {
   print(String.format("123123%s","abcdefg"))
+
+    var ary = ArrayList<Int>()
+    ary.add(0,1)
+    ary.add(0,2)
+    ary.add(0,3)
+
 }
