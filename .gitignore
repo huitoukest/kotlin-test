@@ -1,0 +1,12 @@
+/target
+/.settings
+/*.classpath
+/*.project
+/bin/
+/*.iml
+/*.log
+/.idea
+/*.log.*
+*.iml
+*.class
+*.kotlin_module
