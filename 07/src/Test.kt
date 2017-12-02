@@ -12,11 +12,19 @@ import kotlin.collections.ArrayList
  *   估计代价h(n)我们就可采用当前状态各个数字牌不在目标状态未知的个数，即错位数。
  */
 fun main(args: Array<String>) {
+
+    test02()
+}
+
+fun test001(){
   print(String.format("123123%s","abcdefg"))
 
-    var ary = ArrayList<Int>()
-    ary.add(0,1)
-    ary.add(0,2)
-    ary.add(0,3)
+  var ary = ArrayList<Int>()
+  ary.add(0,1)
+  ary.add(0,2)
+  ary.add(0,3)
+}
 
+fun test02(){
+  var bounds = Boundrys(4).getBoundrys(4)
 }

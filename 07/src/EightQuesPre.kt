@@ -1,4 +1,3 @@
-import com.sun.javafx.binding.StringFormatter
 import java.util.*
 import kotlin.collections.ArrayList
 
@@ -17,9 +16,12 @@ import kotlin.collections.ArrayList
  *   也就是说，当此表达式成立时，两个状态可相互到达：(状态1奇偶性==状态2奇偶性)==(空格距离%2==0)。
  */
 fun main(args: Array<String>) {
-    val stnum4 = intArrayOf(2, 1, 6, 4, 0, 8, 7, 5, 3 , 13 , 15, 10 ,11 ,14 ,9 ,12 )
-    //val tanum4 = intArrayOf(1, 4, 7, 2, 0, 6, 5, 3, 8 , 9,   10 ,11 ,12 ,13,15 ,14)
-    val tanum4 = intArrayOf(1,6,7,4,2,8,5,10,3,13,9,15,0,11,14,12)
+    val stnum4 = intArrayOf(2, 1, 6, 4, 0, 8, 7, 5, 3 , 13 , 15, 10 ,11 ,14 ,9 ,12 )//中等难度->70步,88328ms,count=172792
+    //var stnum4 = intArrayOf(1,4,7,5,9,3,0,10,6,8,2,12,11,13,15,14);//中等难度51步奏,count=7349
+
+    //val tanum4 = intArrayOf(1, 4, 7, 2, 0, 6, 5, 3 ,12 ,13,15, 8 , 9 ,14, 10 ,11)//最高难度,72-194步 程序运行时间： 290086ms,count=282048
+    //val tanum4 = intArrayOf(1,6,7,4,2,8,5,10,3,13,9,15,0,11,14,12)//最简单难度->10步奏
+    val  tanum4 = intArrayOf(7,12 ,13, 2, 6, 0, 3, 5 ,15, 8 , 9 ,14, 1, 4,  10 ,11)//最高难度步骤数：没算出来
 
     val stnum3 = intArrayOf(2, 1, 6, 4, 0, 8, 7, 5, 3 )
     val tanum3 = intArrayOf(1, 4, 7, 2, 0, 6, 5, 3, 8 )
@@ -32,7 +34,7 @@ fun main(args: Array<String>) {
 
 //定义移动的四个方向
 enum class Direction {
-    UP, DOWN, LEFT, RIGHT
+    UP, DOWN, LEFT, RIGHT,CENTER
 }
 
 class ExtIntArray(num:IntArray){
@@ -87,33 +89,112 @@ class ExtIntArray(num:IntArray){
 
 }
 
+//边界索引
+class BoundryArray(length:Int){
+    var left = IntArray(length)
+    var right = IntArray(length)
+    var up = IntArray(length)
+    var down = IntArray(length)
+}
+
+//根据一个维度,依次返回其上下左右四个边的坐标,是一个List包含四个Array
+class Boundrys(dimension:Int){
+    val dim = dimension
+
+    //从0到最外层依次是其边界
+    //比如4*4的矩阵,index=0中存放的是其外围边框.index=1存放的是其去掉外围边框后剩下的边框.
+    fun getBoundrys(dimension:Int):ArrayList<BoundryArray>{
+        var boundrys = ArrayList<BoundryArray>(dimension)
+        var size = dimension * dimension
+        var boundryLevel = dimension / 2 //最多有 boundryLevel层次的边界信息
+        for(i in  0 .. size -1){
+            var y = i / dimension
+            var x = i % dimension
+            var xtmp = if(x >= boundryLevel ) dimension - x -1 else x
+            var ytmp = if(y >= boundryLevel ) dimension - y -1 else y
+            var min = Math.min(xtmp,ytmp)
+            if(boundrys.size <= min){
+                boundrys.add(BoundryArray(dimension - min * 2))
+            }
+            var bArray = boundrys.get(min)
+            if(y == min){
+                bArray.up[x - min] = i
+            }
+            if(y == (dimension - min -1)){
+                bArray.down[x - min ] = i
+            }
+            if(x == min){
+                bArray.left[y - min] = i
+            }
+            if(x == (dimension - min -1)){
+                bArray.right[y - min] = i
+            }
+        }
+        return boundrys
+    }
+}
+
 class InsertSort {
+    //binarySearch()方法的返回值为：
+    // 1、如果找到关键字，则返回值为关键字在数组中的位置索引，且索引从0开始
+    // 2、如果没有找到关键字，返回值为负的插入点值，所谓插入点值就是第一个比关键字大的元素在数组中的位置索引，而且这个位置索引从1开始。
     /**
      * 默认升序插入,插入前需要保持有序
+     * 将插入的数据"二次散列化"
      */
     fun insertSort(list:ArrayList<EightPuzzlePre> , pre:EightPuzzlePre) {
         if (list == null ) {
-            return;
+            return
         }
         if(list.size < 2){
             list.add(pre)
         }
 
         var index = Collections.binarySearch(list,pre)
-        if( index > -1){
+        if( index > -1){//若数组中存在
             //list.add()
             list.add(index,pre)
-        }else if(pre.evaluation < list.get(0).evaluation){
-            list.add(0,pre)
-        }else{
-            list.add(pre)
+        }else{//若数组中不存在返回的是负数的插入值
+            index = Math.abs(index) - 1
+            list.add(index,pre)
         }
     }
 
+    /**
+     * 存在返回 0和正整数
+     * 不存在返回 -1
+     */
     fun brySearch(list:ArrayList<EightPuzzlePre> , pre:EightPuzzlePre):Int{
         var index = Collections.binarySearch(list,pre)
         if (index < 0 ){
             index = -1
+        }else{
+             var isExsited = false
+             for(i in index..list.size-1 ){//依次搜索
+                 if(list.get(i).evaluation > pre.evaluation){
+                     break
+                 }
+                 if(pre.equals(list.get(i))){
+                     isExsited = true
+                     index = i
+                     break
+                 }
+             }
+            if(!isExsited){
+                for(i in index downTo 0){
+                    if(list.get(i).evaluation < pre.evaluation){
+                        break
+                    }
+                    if(pre.equals(list.get(i))){
+                        isExsited = true
+                        index = i
+                        break
+                    }
+                }
+            }
+            if(!isExsited){
+                index = -1
+            }
         }
         return  index
     }
@@ -162,6 +243,7 @@ class EightPuzzlePre(dimension:Int,num:IntArray) : Comparable<Any> {
         companion object {
             private var moveDirectionMap:MutableMap<Int,ArrayList<Direction>>? = null //用来记录每一个步骤
             private var evaluteStep:Array<IntArray>? = null;
+            private var boundarys:ArrayList<BoundryArray>? = null
             val insertUtil = InsertSort()
 
             /**
@@ -199,7 +281,6 @@ class EightPuzzlePre(dimension:Int,num:IntArray) : Comparable<Any> {
                     }
                     if(null == evaluteStep){//求出表格内不同两个位置之间需要移动的步数,索引/下标值最低是0
                         val size = dimension * dimension
-
                         evaluteStep  = Array<IntArray>(size,{it -> IntArray(size,{it->0})})
                         val rng = 0 .. size - 1
                         var temp = 0
@@ -210,14 +291,15 @@ class EightPuzzlePre(dimension:Int,num:IntArray) : Comparable<Any> {
                                 var  ii = i + 1
                                 var  jj = j + 1
                                 var upDownValue = Math.abs(ii / dimension - jj/dimension) //计算纵向距离
-                                /*if(dimension % 2 == 0){//当dimension是偶数是,上下移动一次将会改变奇偶性质,使结果不可达
-                                    upDownValue = upDownValue + 0
-                                }*/
                                 temp +=  upDownValue
                                 temp += Math.abs(i % dimension - j % dimension) //计算横向距离
                                 ary[j] = temp
                             }
                         }
+                    }
+
+                    if(null == boundarys){
+                        boundarys = Boundrys(dimension).getBoundrys(dimension)
                     }
             }
 
@@ -228,6 +310,11 @@ class EightPuzzlePre(dimension:Int,num:IntArray) : Comparable<Any> {
             fun getCanMoveDirections(dimension:Int,zeroPosition:Int):ArrayList<Direction>{
                 init(dimension);
                 return moveDirectionMap!!.get(zeroPosition)?:ArrayList<Direction>();
+            }
+            //返回边界位置
+            fun getBoundaryIndex(dimension:Int):ArrayList<BoundryArray>{
+                init(dimension)
+                return boundarys!!
             }
         }
 
@@ -246,7 +333,22 @@ class EightPuzzlePre(dimension:Int,num:IntArray) : Comparable<Any> {
             var temp = 0
                 for (i in range) {//将不相等的个数作为估价值
                 if (exNum.num[i] != target.exNum.num[i])
-                    temp++
+                    temp += 2
+            }
+            return temp
+        }
+
+        fun getEvl011(target: EightPuzzlePre):Int{
+            var temp = 0
+            var left = intArrayOf(0,4,8,12,7,11,1,2,3,13,14,15)
+            for (i in range) {//将不相等的个数作为估价值
+                if (exNum.num[i] != target.exNum.num[i])
+                    if(left.contains(i)) {
+                        temp += 3
+                    }else{
+                        temp += 1
+                    }
+
             }
             return temp
         }
@@ -260,7 +362,7 @@ class EightPuzzlePre(dimension:Int,num:IntArray) : Comparable<Any> {
                     if(exNum.num[i] == target.exNum.num[i]){//相同位置的两个数相等
                         continue
                     }/*else{
-                         temp += 1
+                         temp += 0
                     }*/
                     for(j in range){
                         if(exNum.num[j] == target.exNum.num[j]){//相同位置的两个数相等
@@ -276,21 +378,118 @@ class EightPuzzlePre(dimension:Int,num:IntArray) : Comparable<Any> {
                 return temp
         }
 
-        /**
-         * 求f(n) = g(n)+h(n);
-         * 初始化状态信息
-         * @param target
-         */
-        fun init(target: EightPuzzlePre) {
-            var temp = getEvl02(target)
+        //如果父结果集中已经有了某一侧的有序,那么当前移动方向导致其无序的,则直接代价为最大值
+        //相当于使之成为不可达区域
+        fun getEvl03(target: EightPuzzlePre):Int{
+            var temp = 0
+            var left = intArrayOf(0,4,8,12)
+            var right = intArrayOf(3,7,11,15)
+            var up = intArrayOf(0,1,2,3)
+            var down = intArrayOf(12,13,14,15)
+
+            fun isEqBoudry(indexs:IntArray,cur:EightPuzzlePre,tar:EightPuzzlePre):Boolean{
+                var isEq = true
+                for(index in 0 .. indexs.size -1){
+                    var it = indexs[index]
+                    if( cur.exNum.num[it] != tar.exNum.num[it])
+                    {
+                        isEq = false
+                        break
+                    }
+
+                }
+                return isEq
+            }
+            var errorAdd = 2
+            if(this.parent != null) {
+                if (isEqBoudry(left, this.parent!!, target) && left.contains(zeroPosition) && !left.contains(this.parent!!.zeroPosition)) {
+                    temp += temp + errorAdd
+                }
+                if (isEqBoudry(right, this.parent!!, target) && right.contains(zeroPosition) && !right.contains(this.parent!!.zeroPosition)) {
+                    temp += temp + errorAdd
+                }
+                if (isEqBoudry(up, this.parent!!, target) && up.contains(zeroPosition) && !up.contains(this.parent!!.zeroPosition)) {
+                    temp += temp + errorAdd
+                }
+                if (isEqBoudry(down, this.parent!!, target) && down.contains(zeroPosition) && !down.contains(this.parent!!.zeroPosition)) {
+                    temp += temp + errorAdd
+                }
+            }
+                temp += getEvl02(target) + getEvl011(target)
+            return temp
+        }
+
+    /**
+     * 边界不等,权值+ n
+     * 依次向中心过渡.边界连等区域额外加x
+     *
+     */
+    fun getEvl04(target: EightPuzzlePre):Int{
+        var boundrys = getBoundaryIndex(dimension)
+        var temp = 0
+        fun getBoudryAdd(indexs:IntArray,cur:EightPuzzlePre,tar:EightPuzzlePre,addHvOne:Int,addAllValue:Int):Int{
+            var addValue = 0
+            var eqCount = 0
+            for(index in 0 .. indexs.size -1){
+                var it = indexs[index]
+                if( cur.exNum.num[it] != tar.exNum.num[it])
+                {
+                    eqCount ++
+                    addValue += addHvOne
+                }
+            }
+            if(eqCount < indexs.size){
+                addValue += addAllValue
+            }
+            return addValue
+        }
+
+        for(i in 0 .. boundrys.size -1){
+            var boundr = boundrys.get(i)
+            var addOne =  boundrys.size - i
+            var addAll = (dimension - i) * (dimension - i)
+            //判断4个边界,其中四角区域需要重复
+            for (i in 0 .. boundr.up.size - 1) {//将不相等的个数作为估价值
+                temp += getBoudryAdd(boundr.up,this,target,addOne,addAll)
+            }
+            for (i in 0 .. boundr.down.size - 1) {
+                temp += getBoudryAdd(boundr.down,this,target,addOne,addAll)
+            }
+            for (i in 0 .. boundr.left.size - 1) {
+                temp += getBoudryAdd(boundr.left,this,target,addOne,addAll)
+            }
+            for (i in 0 .. boundr.right.size - 1) {
+                temp += getBoudryAdd(boundr.right,this,target,addOne,addAll)
+            }
+        }
+        temp += getEvl02(target) * 3
+        return temp
+    }
+
+        fun initEvaluation(target:EightPuzzlePre):Int{
+            //var temp = getEvl02(target) + getEvl01(target)
+            //var temp = Math.max(getEvl02(target),getEvl01(target))
+            var temp = getEvl04(target)
             this.misposition = temp
             if (this.parent == null) {
                 this.depth = 0
             } else {
                 this.depth = this.parent!!.depth + 1
             }
-            this.evaluation = this.depth + this.misposition //这里是将步数,搜索深度信息作为gn(预估的实际代价)
+            this.evaluation = this.depth  + this.misposition //这里是将步数,搜索深度信息作为gn(预估的实际代价)
 
+            //将评估数据的数据"二次散列化",这样在插入排序和搜索的时候速度更快
+            var maxHashValue = 1000000
+            evaluation = evaluation * maxHashValue + this.exNum.hashCode() % maxHashValue
+            return evaluation
+        }
+        /**
+         * 求f(n) = g(n)+h(n);
+         * 初始化状态信息
+         * @param target
+         */
+        fun init(target: EightPuzzlePre) {
+            initEvaluation(target)
             if(zeroPosition == -1){//初始化0的位置
                  for (i in range) {
                     if (this.exNum.num[i] == 0) {
@@ -328,6 +527,8 @@ class EightPuzzlePre(dimension:Int,num:IntArray) : Comparable<Any> {
             }
             return if (reverse % 2 == 0) true else false
         }
+
+
 
         override operator fun compareTo(other: Any): Int {
             if (other is EightPuzzlePre){
@@ -578,7 +779,7 @@ class EightPuzzlePre(dimension:Int,num:IntArray) : Comparable<Any> {
             if(!nextSteps.isEmpty()){
                 var next = nextSteps.get(0)
                 if(count % 10000 == 0 && start.isSolvable(next)){
-                    println("中间值：")
+                    println("evalute:${next.evaluation},nextStepsSize:${nextSteps.size},中间值：")
                     next.printList()
                     println()
                 }
@@ -599,21 +800,15 @@ class EightPuzzlePre(dimension:Int,num:IntArray) : Comparable<Any> {
             directions.forEach {
                 val next = current.moveUp(it,dimension) //按照给定方向移动一步之后,由best状态进行扩展并加入到open表中
                 next.parent = current
-                val historyPosition = insertUtil.brySearch(history,next)//next.isContains(history)
+                next.init(target)
+                val historyPosition = insertUtil.brySearch(history,next)//next.isContains(history),通过评估值折半搜索
                 if (historyPosition == -1) {//判重,如果原来没走过
                     var nextPosition = insertUtil.brySearch(nextSteps,next)//next.isContains(nextSteps)
                     if(nextPosition == -1){//如果没有预判
-                        next.init(target)
-                        if( next.isSolvable(target) && ( it == Direction.LEFT || it == Direction.RIGHT) ) {//如果不可达,则左右移动不可达
-                            insertUtil.insertSort(history,next)
-                        }else {
-                            insertUtil.insertSort(nextSteps, next)//nextSteps.add(next)
-                        }
+                        insertUtil.insertSort(nextSteps, next)//nextSteps.add(next)
                     }else{//如果已经预判评估过
                         if(next.depth < nextSteps.get(nextPosition).depth){
-                            next.init(target)
                             nextSteps.removeAt(nextPosition)
-                            //nextSteps.add(next)
                             insertUtil.insertSort(nextSteps,next)
                         }
                     }
@@ -621,13 +816,11 @@ class EightPuzzlePre(dimension:Int,num:IntArray) : Comparable<Any> {
                         nextSteps.add(next)
                         history.removeAt(historyPosition)
                         next.init(target)
-                        hasNew = true
                     }*/
+                //if(nextSteps.size > 10000){
+               //     nextSteps.removeAt(nextSteps.size -1)
+                //}
             }
-            /*if(directions.size > 0){
-                Collections.sort(nextSteps)
-                Collections.sort(history)
-            }*/
             count ++ ;
             if(count % 10000 == 0) println("已经运行count=$count 步")
             runSearch(nextSteps.get(0),nextSteps,history)
@@ -641,4 +834,19 @@ class EightPuzzlePre(dimension:Int,num:IntArray) : Comparable<Any> {
         println("misscount is $misCount")
     }
 
- }
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as EightPuzzlePre
+
+        if (exNum != other.exNum) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return exNum.hashCode()
+    }
+
+}
