@@ -19,9 +19,9 @@ fun main(args: Array<String>) {
     val stnum4 = intArrayOf(2, 1, 6, 4, 0, 8, 7, 5, 3 , 13 , 15, 10 ,11 ,14 ,9 ,12 )//中等难度->70步,88328ms,count=172792
     //var stnum4 = intArrayOf(1,4,7,5,9,3,0,10,6,8,2,12,11,13,15,14);//中等难度51步奏,count=7349
 
-    //val tanum4 = intArrayOf(1, 4, 7, 2, 0, 6, 5, 3 ,12 ,13,15, 8 , 9 ,14, 10 ,11)//最高难度,72-194步 程序运行时间： 290086ms,count=282048
+    val tanum4 = intArrayOf(1, 4, 7, 2, 0, 6, 5, 3 ,12 ,13,15, 8 , 9 ,14, 10 ,11)//最高难度,72-194步 程序运行时间： 290086ms,count=282048
     //val tanum4 = intArrayOf(1,6,7,4,2,8,5,10,3,13,9,15,0,11,14,12)//最简单难度->10步奏
-    val  tanum4 = intArrayOf(7,12 ,13, 2, 6, 0, 3, 5 ,15, 8 , 9 ,14, 1, 4,  10 ,11)//最高难度步骤数：没算出来
+    //val  tanum4 = intArrayOf(7,12 ,13, 2, 6, 0, 3, 5 ,15, 8 , 9 ,14, 1, 4,  10 ,11)//最高难度步骤数：没算出来
 
     val stnum3 = intArrayOf(2, 1, 6, 4, 0, 8, 7, 5, 3 )
     val tanum3 = intArrayOf(1, 4, 7, 2, 0, 6, 5, 3, 8 )
@@ -142,12 +142,14 @@ class InsertSort {
      * 默认升序插入,插入前需要保持有序
      * 将插入的数据"二次散列化"
      */
-    fun insertSort(list:ArrayList<EightPuzzlePre> , pre:EightPuzzlePre) {
+    fun insertSort(list:ArrayList<EightPuzzlePre> , pre:EightPuzzlePre , maxSize:Int = 10000000) {
         if (list == null ) {
             return
         }
         if(list.size < 2){
             list.add(pre)
+        }else if(list.size > maxSize){
+            list.removeAt(maxSize)
         }
 
         var index = Collections.binarySearch(list,pre)
@@ -415,7 +417,7 @@ class EightPuzzlePre(dimension:Int,num:IntArray) : Comparable<Any> {
                     temp += temp + errorAdd
                 }
             }
-                temp += getEvl02(target) + getEvl011(target)
+                temp += getEvl02(target) * 3 + getEvl011(target)
             return temp
         }
 
@@ -432,10 +434,15 @@ class EightPuzzlePre(dimension:Int,num:IntArray) : Comparable<Any> {
             var eqCount = 0
             for(index in 0 .. indexs.size -1){
                 var it = indexs[index]
+                //if(cur.exNum.num[it] == 0){
+                   // eqCount ++
+                    //continue
+                //}
                 if( cur.exNum.num[it] != tar.exNum.num[it])
                 {
-                    eqCount ++
                     addValue += addHvOne
+                }else{
+                    eqCount ++
                 }
             }
             if(eqCount < indexs.size){
@@ -462,7 +469,7 @@ class EightPuzzlePre(dimension:Int,num:IntArray) : Comparable<Any> {
                 temp += getBoudryAdd(boundr.right,this,target,addOne,addAll)
             }
         }
-        temp += getEvl02(target) * 3
+        temp += getEvl02(target) * 2
         return temp
     }
 
@@ -505,6 +512,8 @@ class EightPuzzlePre(dimension:Int,num:IntArray) : Comparable<Any> {
          * 则可通过变换到达，否则，这两个状态不可达。这样，就可以在具体解决问题之前判断出问题是否可解，从而可以避免不必要的搜索。
          * 原理:因为每次都是两个数值交换位置,其大小值会互换.如果两个数列像同一个数列A转换,那么一个转换X次,一个是X+1,这这两个数列
          * 无法通过变换得到.
+         * 当M(一行有M列)为奇数时，两种数码可以互达与两种数码【排列逆序对数（不算0）】奇偶性相同等价。
+         * 当M为偶数时，两种数码可以互达与两种数码【排列逆序对数（不算0）+0的纵坐标】奇偶性相同等价。
          * 求逆序值并判断是否有解
          * @param target
          * @return 有解：true 无解：false
@@ -516,16 +525,26 @@ class EightPuzzlePre(dimension:Int,num:IntArray) : Comparable<Any> {
             if(exNum.num.sum() != exNum.num.sum()){
                 return false
             }
-            var reverse = 0
+            var reverse1 = 0
+            var reverse2 = 0
             for (i in range) {//num[i]是后面的数
                 for (j in 0..i - 1) {//num[j]是前面的数
+                    /*if(i == zeroPosition || j == target.zeroPosition){
+                        continue
+                    }*/
                     if (exNum.num[j] > exNum.num[i])
-                        reverse++
+                        reverse1++
                     if (target.exNum.num[j] > target.exNum.num[i])
-                        reverse++
+                        reverse2++
                 }
             }
-            return if (reverse % 2 == 0) true else false
+            var isSolvable = false //偶数时,上下移动改变逆序数的奇偶性,N为偶数时，逆序数之和sum加上空格所在行距目标空格行的距离dis之和要和终点状态逆序数同奇偶
+            if(this.dimension % 2 == 0 && (reverse1 + reverse2 + this.zeroPosition / dimension + target.zeroPosition / dimension) % 2 == 0 ){
+                isSolvable = true
+            }else if(this.dimension % 2 == 1 && (reverse1 + reverse2) % 2 ==0){
+                isSolvable = true
+            }
+            return isSolvable
         }
 
 
@@ -817,9 +836,6 @@ class EightPuzzlePre(dimension:Int,num:IntArray) : Comparable<Any> {
                         history.removeAt(historyPosition)
                         next.init(target)
                     }*/
-                //if(nextSteps.size > 10000){
-               //     nextSteps.removeAt(nextSteps.size -1)
-                //}
             }
             count ++ ;
             if(count % 10000 == 0) println("已经运行count=$count 步")
